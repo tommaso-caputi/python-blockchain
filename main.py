@@ -1,3 +1,4 @@
+from flask import Flask, request
 import json
 import hashlib
 
@@ -43,10 +44,41 @@ class Blockchain():
         hash_value = hash_obj.hexdigest()
         return hash_value
 
-""" blockchain = Blockchain()
-blockchain.create_transaction('send','rec','5')
-blockchain.create_transaction('send','rec','7')
-print(blockchain.mine_block())
-blockchain.create_transaction('send','rec','1')
-print(blockchain.mine_block())
-print(blockchain.chain) """
+
+# Instantiate the blockchain
+blockchain = Blockchain()
+
+# Instantiate the Flask app
+app = Flask(__name__)
+
+# Define the routes
+@app.route('/transactions/new', methods=['POST'])
+def new_transaction():
+    values = request.get_json()
+    # Check that the required fields are in the POST'ed data
+    required = ['sender', 'receiver', 'amount']
+    if not all(k in values for k in required):
+        return 'Missing values', 400
+
+    # Create a new transaction
+    response = blockchain.create_transaction(values['sender'], values['receiver'], values['amount'])
+    return response, 201
+
+@app.route('/mine', methods=['GET'])
+def mine():
+    # Mine a new block
+    response = blockchain.mine_block()
+    return response, 200
+
+@app.route('/chain', methods=['GET'])
+def full_chain():
+    # Return the full blockchain
+    response = {
+        'chain': blockchain.chain,
+        'length': len(blockchain.chain)
+    }
+    return json.dumps(response), 200
+
+# Run the app
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
